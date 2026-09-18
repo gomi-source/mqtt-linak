@@ -1,0 +1,81 @@
+# mqtt-linak configuration.
+#
+# Copy to config.yaml and edit. Only mqtt.broker and the desks list are
+# required; everything shown commented out is the built-in default.
+
+mqtt:
+  broker: tcp://localhost:1883
+  # client_id: mqtt-linak
+
+  # Prefer the MQTT_LINAK_USERNAME / MQTT_LINAK_PASSWORD environment
+  # variables over putting credentials in this file.
+  # username: ""
+  # password: ""
+
+  # qos: 0
+  # retain: true          # retained metrics: a subscriber that connects
+  #                       # later sees each desk's last known height
+
+  # command_topic_base: linak/cmd
+  # metric_topic_base: linak/desk
+
+  # Log paho's own MQTT protocol trace. Very chatty — every keepalive
+  # ping and inbound packet, forever. Separate from -log-level because it
+  # buries everything else; paho's errors and warnings are logged either
+  # way. The -mqtt-debug flag turns it on for one run.
+  # debug: false
+
+  # keep_alive: 30s
+  # connect_timeout: 10s
+
+bluetooth:
+  # Explicit path to the corebluetoothd helper. Leave unset to look next to
+  # the mqtt-linak binary (bin/corebluetoothd.app/...) and then on $PATH.
+  # helper_path: ""
+
+  # Restrict the scan to peripherals advertising one of these services.
+  # The default is no filter at all, and that is usually the only thing
+  # that works: a LINAK controller does NOT advertise its control service
+  # (99FA0001-338A-1024-8A49-009C0215F78A) - that only becomes visible
+  # after connecting - so filtering on it finds nothing. Run
+  # `mqtt-linak -scan` to see what your controller actually advertises
+  # before setting this.
+  # scan_service_uuids: []
+
+  # Send a Control wake-up and stop on every connect, which is what
+  # LINAK's own app does on startup. A controller can get into a state of
+  # dropping the link repeatedly, and a wake-up appears to bring it out of
+  # that. On by default; set false to compare.
+  # wake_on_connect: true
+
+  # connect_timeout: 30s
+  # reconnect_min_backoff: 2s
+  # reconnect_max_backoff: 60s
+
+  # Height updates are coalesced to at most one per interval while the desk
+  # is moving. The final resting position is always published immediately.
+  # publish_min_interval: 250ms
+
+# Each desk gets its own topic namespace, named by its id. Set exactly one
+# of name, name_prefix or peripheral_id so the bridge can recognise the
+# desk while scanning.
+#
+#   name          exact, case-insensitive, matched against the peripheral
+#                 name and the advertised local name
+#   name_prefix   the same, but a prefix - handy for "Desk 8802" style
+#                 names where the suffix varies
+#   peripheral_id the CoreBluetooth peripheral UUID; stable on this Mac,
+#                 but a different Mac sees a different UUID for the same
+#                 physical desk
+#
+# Run `mqtt-linak -scan` to list what is nearby and copy the right value
+# from there. If the desk's panel is asleep, press a button on it first.
+desks:
+  - id: anders
+    name: "Desk 8802"
+
+  # - id: meeting-room
+  #   name_prefix: "Desk "
+
+  # - id: lab
+  #   peripheral_id: "1E2D4C6B-0000-0000-0000-000000000000"
