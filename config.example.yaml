@@ -16,8 +16,8 @@ mqtt:
   # retain: true          # retained metrics: a subscriber that connects
   #                       # later sees each desk's last known height
 
-  # command_topic_base: linak/cmd
-  # metric_topic_base: linak/desk
+  # command_topic_base: cmd/linak
+  # metric_topic_base: tele/linak
 
   # Log paho's own MQTT protocol trace. Very chatty — every keepalive
   # ping and inbound packet, forever. Separate from -log-level because it

@@ -68,7 +68,7 @@ for.
 Commands are normally just the number:
 
 ```sh
-mosquitto_pub -t linak/cmd/anders/height -m 7350
+mosquitto_pub -t cmd/linak/anders/height -m 7350
 ```
 
 A JSON object with a `value`, `height`, `position` or `base_height` field

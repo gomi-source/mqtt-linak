@@ -73,13 +73,13 @@ func TestDefaultScanIsUnfiltered(t *testing.T) {
 }
 
 func TestTopicBuilding(t *testing.T) {
-	if got := commandTopic("linak/cmd", "office", leafHeight); got != "linak/cmd/office/height" {
+	if got := commandTopic("cmd/linak", "office", leafHeight); got != "cmd/linak/office/height" {
 		t.Errorf("commandTopic = %q", got)
 	}
-	if got := metricTopic("linak/desk", "office", leafBaseHeight); got != "linak/desk/office/base_height" {
+	if got := metricTopic("tele/linak", "office", leafBaseHeight); got != "tele/linak/office/base_height" {
 		t.Errorf("metricTopic = %q", got)
 	}
-	if got := metricTopic("linak/desk", config.ReservedDeskID, leafAvailability); got != "linak/desk/bridge/availability" {
+	if got := metricTopic("tele/linak", config.ReservedDeskID, leafAvailability); got != "tele/linak/bridge/availability" {
 		t.Errorf("bridge availability topic = %q", got)
 	}
 }

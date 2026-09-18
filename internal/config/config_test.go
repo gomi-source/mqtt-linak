@@ -22,7 +22,7 @@ func TestParseMinimalAppliesDefaults(t *testing.T) {
 	if cfg.MQTT.ClientID != "mqtt-linak" {
 		t.Errorf("client_id = %q, want the default", cfg.MQTT.ClientID)
 	}
-	if cfg.MQTT.CommandTopicBase != "linak/cmd" || cfg.MQTT.MetricTopicBase != "linak/desk" {
+	if cfg.MQTT.CommandTopicBase != "cmd/linak" || cfg.MQTT.MetricTopicBase != "tele/linak" {
 		t.Errorf("topic bases = %q/%q, want the defaults", cfg.MQTT.CommandTopicBase, cfg.MQTT.MetricTopicBase)
 	}
 	if !cfg.MQTT.Retain {
