@@ -11,10 +11,10 @@ MQTT broker  <--->  mqtt-linak  <--->  corebluetoothd  <--->  LINAK DPG desk
                      (this repo)      (corebluetooth-go)      (dpg protocol)
 ```
 
-- [`corebluetooth-go`](../corebluetooth-go) supplies the BLE transport: a
+- [`corebluetooth-go`](https://github.com/gomi-source/corebluetooth-go) supplies the BLE transport: a
   Swift helper process owning the `CBCentralManager`, spoken to over a
   Unix socket, so none of this needs cgo.
-- [`dpg`](../dpg) supplies the LINAK protocol: service/characteristic
+- [`linak-dpg`](https://github.com/gomi-source/linak-dpg) supplies the LINAK protocol: service/characteristic
   UUIDs, the DeskPanel command envelope, and the `desk` package's `Move`,
   `BaseOffset` and `WriteBaseOffset`.
 - This repo supplies the supervision (scan, connect, reconnect) and the
