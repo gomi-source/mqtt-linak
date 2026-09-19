@@ -4,7 +4,7 @@
 # required; everything shown commented out is the built-in default.
 
 mqtt:
-  broker: tcp://localhost:1883
+  broker: mqtt://localhost:1883
   # client_id: mqtt-linak
 
   # Prefer the MQTT_LINAK_USERNAME / MQTT_LINAK_PASSWORD environment

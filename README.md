@@ -87,7 +87,7 @@ desks list are required:
 
 ```yaml
 mqtt:
-  broker: tcp://localhost:1883
+  broker: mqtt://localhost:1883
 
 desks:
   - id: anders

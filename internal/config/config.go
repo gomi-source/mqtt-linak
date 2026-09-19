@@ -48,7 +48,7 @@ type Config struct {
 
 // MQTT configures the broker connection and the topic namespaces.
 type MQTT struct {
-	// Broker is a paho-style broker URL, e.g. tcp://192.168.1.10:1883,
+	// Broker is a paho-style broker URL, e.g. mqtt://192.168.1.10:1883,
 	// ssl://broker:8883 or ws://broker:9001/mqtt.
 	Broker   string `yaml:"broker"`
 	ClientID string `yaml:"client_id"`
@@ -233,7 +233,7 @@ func (c *Config) ApplyEnv(lookup func(string) (string, bool)) {
 // Validate reports the first problem that would stop the bridge starting.
 func (c *Config) Validate() error {
 	if strings.TrimSpace(c.MQTT.Broker) == "" {
-		return fmt.Errorf("mqtt.broker is required (e.g. tcp://localhost:1883)")
+		return fmt.Errorf("mqtt.broker is required (e.g. mqtt://localhost:1883)")
 	}
 	if c.MQTT.QoS > 2 {
 		return fmt.Errorf("mqtt.qos must be 0, 1 or 2, got %d", c.MQTT.QoS)

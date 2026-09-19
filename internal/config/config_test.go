@@ -8,7 +8,7 @@ import (
 
 const minimal = `
 mqtt:
-  broker: tcp://localhost:1883
+  broker: mqtt://localhost:1883
 desks:
   - id: office
     name: "Desk 8802"
@@ -41,7 +41,7 @@ func TestParseMinimalAppliesDefaults(t *testing.T) {
 func TestParseDurationsAndExplicitEmptyScanList(t *testing.T) {
 	cfg, err := Parse([]byte(`
 mqtt:
-  broker: tcp://broker:1883
+  broker: mqtt://broker:1883
 bluetooth:
   connect_timeout: 45s
   publish_min_interval: 1s
@@ -74,7 +74,7 @@ func TestParseRejectsUnknownKeys(t *testing.T) {
 func TestParseRejectsBadDuration(t *testing.T) {
 	_, err := Parse([]byte(`
 mqtt:
-  broker: tcp://b:1883
+  broker: mqtt://b:1883
 bluetooth:
   connect_timeout: soon
 desks:
@@ -88,11 +88,11 @@ desks:
 
 func TestApplyEnvOverrides(t *testing.T) {
 	cfg := DefaultConfig()
-	cfg.MQTT.Broker = "tcp://from-file:1883"
+	cfg.MQTT.Broker = "mqtt://from-file:1883"
 	cfg.ApplyEnv(func(k string) (string, bool) {
 		switch k {
 		case "MQTT_LINAK_BROKER":
-			return "tcp://from-env:1883", true
+			return "mqtt://from-env:1883", true
 		case "MQTT_LINAK_PASSWORD":
 			return "s3cret", true
 		case "MQTT_LINAK_QOS":
@@ -102,7 +102,7 @@ func TestApplyEnvOverrides(t *testing.T) {
 		}
 		return "", false
 	})
-	if cfg.MQTT.Broker != "tcp://from-env:1883" {
+	if cfg.MQTT.Broker != "mqtt://from-env:1883" {
 		t.Errorf("broker = %q, want the env value", cfg.MQTT.Broker)
 	}
 	if cfg.MQTT.Password != "s3cret" {
@@ -132,7 +132,7 @@ func TestApplyEnvIgnoresGarbage(t *testing.T) {
 func TestValidate(t *testing.T) {
 	base := func() Config {
 		c := DefaultConfig()
-		c.MQTT.Broker = "tcp://b:1883"
+		c.MQTT.Broker = "mqtt://b:1883"
 		c.Desks = []Desk{{ID: "office", Name: "Desk"}}
 		return c
 	}
@@ -204,7 +204,7 @@ func TestLoadBluetoothTolerateMissingFile(t *testing.T) {
 func TestParseNamePrefixDesk(t *testing.T) {
 	cfg, err := Parse([]byte(`
 mqtt:
-  broker: tcp://b:1883
+  broker: mqtt://b:1883
 desks:
   - id: office
     name_prefix: "Desk "
