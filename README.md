@@ -175,6 +175,7 @@ level=DEBUG msg="desk command" desk=anders command=stop
 level=DEBUG msg="desk command" desk=anders command=take_ownership
 level=DEBUG msg="desk command" desk=anders command=read_base_height
 level=DEBUG msg="desk command" desk=anders command=move target_tenths_mm=7350
+level=DEBUG msg="desk command" desk=anders command=keepalive_wake_up
 ```
 
 A failing one is logged again at warn with its error, so a command that
@@ -215,6 +216,28 @@ repeat, for the process's lifetime.
   reconnect loop retrying at the minimum interval forever. The log records
   how long each connection was held, which is the quickest way to tell a
   flapping link from an ordinary one.
+- **An idle desk gets a wake-up before it times out.** A DPG controller
+  drops a connection that has been idle for four hours — consistently
+  enough to be a deliberate timeout rather than a fault. So when nothing
+  has been sent to a desk for `keepalive_interval` (default one hour), a
+  Control wake-up goes out. Any command counts as activity, so a desk in
+  use never sees one, and the default leaves several attempts before the
+  four hours are up.
+
+  **Only outbound traffic resets the clock**, which is observed rather
+  than assumed: commanding a move over MQTT resets the timer, while moving
+  the desk from its own panel does not — and that produces a steady stream
+  of inbound position reports and no writes at all. The controller counts
+  what it is told, not what it says. So the keepalive tracks writes only,
+  and a desk someone is using by hand still gets one.
+
+  That also settles that the four hours are about idleness rather than the
+  age of the connection. What is left to confirm is narrower: a move is a
+  ReferenceInput write and the keepalive is a Control write, so the
+  running bridge is what shows whether that characteristic counts too. A
+  drop at four hours with hourly wake-ups in the log would mean it does
+  not, and the keepalive should then send something else — a base-offset
+  read would do.
 - **A wake-up and a stop are sent on every connect**, before anything
   else, which is what LINAK's own app does on startup. A DPG controller
   can get into a state where it drops the link repeatedly; a wake-up

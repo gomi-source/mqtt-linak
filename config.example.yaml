@@ -52,6 +52,15 @@ bluetooth:
   # reconnect_min_backoff: 2s
   # reconnect_max_backoff: 60s
 
+  # Send a Control wake-up when nothing has been sent to a desk for this
+  # long. A DPG controller drops an idle connection after four hours, and
+  # this keeps it from getting there; the default leaves several attempts
+  # before the deadline. A desk that is being used never sees one, since
+  # any command counts as activity. The timer is about idleness, not the
+  # age of the connection: commanding a move resets it, moving the desk
+  # from its own panel does not. Set to 0 to disable.
+  # keepalive_interval: 1h
+
   # Height updates are coalesced to at most one per interval while the desk
   # is moving. The final resting position is always published immediately.
   # publish_min_interval: 250ms

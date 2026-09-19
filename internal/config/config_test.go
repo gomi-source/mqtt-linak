@@ -31,6 +31,11 @@ func TestParseMinimalAppliesDefaults(t *testing.T) {
 	if cfg.Bluetooth.ReconnectMaxBackoff.D() != time.Minute {
 		t.Errorf("reconnect_max_backoff = %v, want 1m", cfg.Bluetooth.ReconnectMaxBackoff.D())
 	}
+	// A DPG controller drops an idle connection after four hours, so the
+	// default has to leave room for several attempts before that.
+	if ka := cfg.Bluetooth.KeepAliveInterval.D(); ka <= 0 || ka >= 4*time.Hour {
+		t.Errorf("keepalive_interval = %v, want a positive interval well under the desk's four-hour idle timeout", ka)
+	}
 	// nil means unfiltered: a LINAK controller advertises no service to
 	// filter on.
 	if cfg.Bluetooth.ScanServiceUUIDs != nil {

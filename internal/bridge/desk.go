@@ -93,6 +93,7 @@ type deskManager struct {
 	online        bool
 	onlineAt      time.Time
 	lastHeld      time.Duration
+	lastActivity  time.Time
 	consecFailure int
 }
 
@@ -276,6 +277,13 @@ func (m *deskManager) connectAndServe(ctx context.Context) error {
 	flush := time.NewTicker(maxDuration(m.b.cfg.Bluetooth.PublishMinInterval.D(), 50*time.Millisecond))
 	defer flush.Stop()
 
+	// A DPG controller drops an idle connection after four hours. The
+	// check runs often; the wake-up only goes out when the desk has
+	// actually heard nothing for keepalive_interval, so a busy desk is
+	// never poked.
+	keepAlive := time.NewTicker(keepAliveCheckInterval)
+	defer keepAlive.Stop()
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -284,6 +292,8 @@ func (m *deskManager) connectAndServe(ctx context.Context) error {
 			return errDisconnected
 		case <-flush.C:
 			m.height.Flush()
+		case <-keepAlive.C:
+			m.keepAlive()
 		case cmd := <-m.commands:
 			m.apply(ctx, cmd)
 		}
@@ -301,6 +311,8 @@ func (m *deskManager) command(name string, fn func() error, attrs ...any) error 
 	args = append(args, attrs...)
 
 	m.log.Debug("desk command", args...)
+
+	m.markActivity()
 
 	err := fn()
 	if err != nil {
@@ -392,6 +404,53 @@ func (m *deskManager) publishHeight(v int) {
 	m.lastHeight, m.hasHeight = v, true
 	m.stateMu.Unlock()
 	m.b.publish(m.topic(leafHeight), formatTenthsMM(v))
+}
+
+// keepAliveCheckInterval is how often the idle check runs. It is not the
+// keepalive interval itself - it only decides how precisely the configured
+// one is honoured, and costs nothing, since a check with recent activity
+// sends nothing.
+const keepAliveCheckInterval = time.Minute
+
+// markActivity records that something was sent to the desk. Only writes
+// count, and that is not a guess: a move commanded over MQTT resets the
+// controller's idle timer, while moving the desk from its own panel -
+// which produces a stream of inbound position reports and no writes at
+// all - does not. So the desk counts what it is told, not what it says.
+func (m *deskManager) markActivity() {
+	m.stateMu.Lock()
+	m.lastActivity = time.Now()
+	m.stateMu.Unlock()
+}
+
+func (m *deskManager) idleFor() time.Duration {
+	m.stateMu.Lock()
+	defer m.stateMu.Unlock()
+	if m.lastActivity.IsZero() {
+		return 0
+	}
+	return time.Since(m.lastActivity)
+}
+
+// keepAlive sends a wake-up if the desk has heard nothing for long enough.
+//
+// The controller drops a connection that has been idle for four hours -
+// observed consistently enough to be a deliberate timeout. A wake-up is
+// the smallest thing that counts as traffic and is what LINAK's own app
+// sends on startup, so it is the natural thing to send; it tells the
+// controller to listen, not to move.
+func (m *deskManager) keepAlive() {
+	interval := m.b.cfg.Bluetooth.KeepAliveInterval.D()
+	if interval <= 0 || m.desk == nil || !m.isOnline() {
+		return
+	}
+	idle := m.idleFor()
+	if idle < interval {
+		return
+	}
+
+	m.log.Debug("desk idle, sending keepalive", "idle", idle.Round(time.Second))
+	_ = m.command("keepalive_wake_up", m.desk.WakeUp)
 }
 
 // readBaseHeight asks the desk for its configured distance from the floor

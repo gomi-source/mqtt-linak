@@ -109,6 +109,21 @@ type Bluetooth struct {
 	ReconnectMinBackoff Duration `yaml:"reconnect_min_backoff"`
 	ReconnectMaxBackoff Duration `yaml:"reconnect_max_backoff"`
 
+	// KeepAliveInterval sends a Control wake-up when nothing has been sent
+	// to a desk for this long. A DPG controller drops an idle connection
+	// after four hours, consistently enough to look like a deliberate
+	// timeout rather than a fault, and this is what keeps it from getting
+	// there. The default leaves several attempts before the deadline, so
+	// one that fails or is missed is not the one that matters.
+	//
+	// The timer is known to be about idleness rather than the connection's
+	// age: commanding a move resets it, while moving the desk from its own
+	// panel does not. What remains unconfirmed is narrower - a move is a
+	// ReferenceInput write, and this sends a Control wake-up, so the
+	// running bridge is what shows whether that characteristic counts too.
+	// 0 disables it.
+	KeepAliveInterval Duration `yaml:"keepalive_interval"`
+
 	// PublishMinInterval coalesces height updates while the desk is
 	// moving; the final position (speed 0) is always published
 	// immediately regardless.
@@ -153,6 +168,7 @@ func DefaultConfig() Config {
 			ConnectTimeout:      Duration(30 * time.Second),
 			ReconnectMinBackoff: Duration(2 * time.Second),
 			ReconnectMaxBackoff: Duration(60 * time.Second),
+			KeepAliveInterval:   Duration(time.Hour),
 			PublishMinInterval:  Duration(250 * time.Millisecond),
 		},
 	}
