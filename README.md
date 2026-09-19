@@ -8,7 +8,7 @@ changes, and moves desks in response to commands published to MQTT.
 
 ```
 MQTT broker  <--->  mqtt-linak  <--->  corebluetoothd  <--->  LINAK DPG desk
-                     (this repo)      (corebluetooth-go)      (dpg protocol)
+                    (this repo)       (corebluetooth-go)      (dpg protocol)
 ```
 
 - [`corebluetooth-go`](https://github.com/gomi-source/corebluetooth-go) supplies the BLE transport: a
@@ -272,12 +272,6 @@ a move has finished.
   through the BLE client instead. Only ReferenceOutput is subscribed to at
   all now — base height is read synchronously with `desk.BaseOffset(ctx)`,
   since DeskPanel is request/response.
-- **Upstream: `dpg`'s `subscription.Subscription.AddCallback` is not
-  goroutine-safe** — it mutates a map without holding the mutex `start()`
-  uses, and `desk.Move` adds and removes a callback from its own
-  goroutine. The bridge registers once on the first connect and issues
-  commands from a single goroutine per desk, which avoids it in practice,
-  but a concurrent `Move` on a shared subscription would race.
 - **Everything that writes needs the owner bit** on the controller, which
   the bridge sets on each connect (see above). If `TakeOwnership` keeps
   failing, moves will be accepted over MQTT and then silently do nothing.
