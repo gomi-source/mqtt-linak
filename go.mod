@@ -4,8 +4,8 @@ go 1.25.4
 
 require (
 	github.com/eclipse/paho.mqtt.golang v1.5.1
-	github.com/gomi-source/corebluetooth-go v0.0.0
-	github.com/gomi-source/linak-dpg v0.0.0
+	github.com/gomi-source/corebluetooth-go v0.1.0
+	github.com/gomi-source/linak-dpg v0.1.2
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -14,7 +14,3 @@ require (
 	golang.org/x/net v0.44.0 // indirect
 	golang.org/x/sync v0.17.0 // indirect
 )
-
-replace github.com/gomi-source/corebluetooth-go => ../corebluetooth-go
-
-replace github.com/gomi-source/linak-dpg => ../linak-dpg
