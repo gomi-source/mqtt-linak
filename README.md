@@ -20,8 +20,10 @@ MQTT broker  <--->  mqtt-linak  <--->  corebluetoothd  <--->  LINAK DPG desk
 - This repo supplies the supervision (scan, connect, reconnect) and the
   MQTT mapping.
 
-Both sibling repos are resolved through `replace` directives in `go.mod`,
-so all three need to sit next to each other in the same parent directory.
+`corebluetooth-go` and `linak-dpg` are ordinary published Go module
+dependencies (`go.mod` pins real tagged versions). The Swift helper is a
+separate matter - see "Building and running" below for how `make helper`
+gets `corebluetoothd`.
 
 ## Topics
 
@@ -134,7 +136,10 @@ to keep broker credentials out of it:
 
 ## Building and running
 
-Requires macOS with a Swift toolchain (for the helper) and Go 1.25.
+Requires macOS and Go 1.25. A Swift toolchain is only needed if the
+helper step below ends up building `corebluetoothd` itself. The easy
+path is first installing `corebluetoothd` using either HomeBrew (see
+below) or downloaded from a [GitHub Release](https://github.com/gomi-source/corebluetooth-go/releases).
 
 ```sh
 go mod tidy          # first time only; writes go.sum
@@ -143,11 +148,30 @@ cp config.example.yaml config.yaml && $EDITOR config.yaml
 ./bin/mqtt-linak -config config.yaml
 ```
 
-`make helper` builds `corebluetoothd` from the sibling checkout and
-copies the `.app` bundle into `bin/`, which is where `ble.Start()` looks
-for it. The bundle, rather than a bare binary, is required: macOS reads
-the CoreBluetooth authorization identity from its `Info.plist`, and a
-bare binary is killed outright the moment it touches `CBCentralManager`.
+Plain `make` is shorthand for the default `all` target, which runs `make
+helper` and then `make build` - you don't need to invoke `make helper`
+yourself unless you want to refresh just the helper bundle. `make helper`
+gets `corebluetoothd` into `bin/`, which is where `ble.Start()` looks for
+it, preferring whatever's already available over building from source:
+
+1. An already-installed `corebluetoothd` found on `$PATH` - e.g. via
+   HomeBrew from the
+   [`gomi-source/corebluetooth-go`](https://github.com/gomi-source/corebluetooth-go)
+   tap: (`brew tap gomi-source/corebluetooth-go && brew trust
+   gomi-source/corebluetooth-go && brew install corebluetoothd`; the
+   `brew trust` step is required once on Homebrew >= 6.0 since this is a
+   personal, not core, tap).
+2. A `corebluetoothd.app` you've dropped into `../corebluetooth-go/bin/`
+   yourself, e.g. unzipped from a
+   [GitHub Release](https://github.com/gomi-source/corebluetooth-go/releases).
+3. Otherwise, building it from a sibling `../corebluetooth-go` checkout
+   (this is the only path that needs a Swift toolchain) - useful when
+   you're actively developing against an unreleased helper change.
+
+Whichever source it comes from, the `.app` bundle - not a bare binary -
+is what has to end up in `bin/`: macOS reads the CoreBluetooth
+authorization identity from the bundle's `Info.plist`, and a bare binary
+is killed outright the moment it touches `CBCentralManager`.
 
 The first scan triggers the Bluetooth permission prompt. If it never
 appears, or scanning silently finds nothing, check **System Settings >

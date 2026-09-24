@@ -14,15 +14,30 @@ build:
 	mkdir -p $(BIN_DIR)
 	go build -ldflags "$(LDFLAGS)" -o $(BINARY) ./cmd/mqtt-linak
 
-## Build corebluetoothd from the sibling corebluetooth-go checkout and drop
-## the .app bundle next to our binary, which is where ble.Start() looks for
-## it by default. macOS ties CoreBluetooth authorization to the bundle
-## identity, so the bundle - not a bare binary - is what has to be there.
+## Bundle corebluetoothd into bin/, where ble.Start() looks for it by
+## default. Prefers a corebluetoothd already on this machine (Homebrew
+## tap, or a GitHub Release .app you've dropped into $(CBGO_DIR)/bin) over
+## building one from the sibling corebluetooth-go checkout, so this repo
+## doesn't need its own Xcode/Swift toolchain just to bundle a helper
+## that's already installed. Falls back to building it if neither is
+## found. macOS ties CoreBluetooth authorization to the bundle identity,
+## so the .app bundle - not a bare binary - is what has to end up here.
 helper:
-	$(MAKE) -C $(CBGO_DIR) helper
 	mkdir -p $(BIN_DIR)
 	rm -rf $(BIN_DIR)/corebluetoothd.app
-	cp -R $(CBGO_DIR)/helper/.build/corebluetoothd.app $(BIN_DIR)/corebluetoothd.app
+	@if command -v corebluetoothd >/dev/null 2>&1; then \
+		real="$$(readlink -f "$$(command -v corebluetoothd)")"; \
+		src="$${real%/Contents/MacOS/corebluetoothd}"; \
+		echo "using installed corebluetoothd: $$src"; \
+		cp -R "$$src" $(BIN_DIR)/corebluetoothd.app; \
+	elif [ -d $(CBGO_DIR)/bin/corebluetoothd.app ]; then \
+		echo "using $(CBGO_DIR)/bin/corebluetoothd.app"; \
+		cp -R $(CBGO_DIR)/bin/corebluetoothd.app $(BIN_DIR)/corebluetoothd.app; \
+	else \
+		echo "no installed corebluetoothd found; building from $(CBGO_DIR)"; \
+		$(MAKE) -C $(CBGO_DIR) helper; \
+		cp -R $(CBGO_DIR)/helper/.build/corebluetoothd.app $(BIN_DIR)/corebluetoothd.app; \
+	fi
 
 ## Run against ./config.yaml with debug logging.
 run: all
