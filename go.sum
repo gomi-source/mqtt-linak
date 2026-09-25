@@ -1,7 +1,7 @@
 github.com/eclipse/paho.mqtt.golang v1.5.1 h1:/VSOv3oDLlpqR2Epjn1Q7b2bSTplJIeV2ISgCl2W7nE=
 github.com/eclipse/paho.mqtt.golang v1.5.1/go.mod h1:1/yJCneuyOoCOzKSsOTUc0AJfpsItBGWvYpBLimhArU=
-github.com/gomi-source/corebluetooth-go v0.2.0 h1:aeO1NHFEz9m1PlVeruCSs9Yx2b8FB197rKDF7Ss8KpY=
-github.com/gomi-source/corebluetooth-go v0.2.0/go.mod h1:dbmKln+AzmZ8n80qXn9MbeyfXS0kzdmzyGx2AqrsVYg=
+github.com/gomi-source/corebluetooth-go v0.2.1 h1:NF2XhmFRMBDDRE11LLfJt88smN/IdTR14Mi0+P0jn48=
+github.com/gomi-source/corebluetooth-go v0.2.1/go.mod h1:dbmKln+AzmZ8n80qXn9MbeyfXS0kzdmzyGx2AqrsVYg=
 github.com/gomi-source/linak-dpg v0.2.0 h1:tuC7rXQVVJgxKe1d+Ksv2rlnXX+z6ngZt6r6W0TwSFI=
 github.com/gomi-source/linak-dpg v0.2.0/go.mod h1:rjlN/uxY+wXckYjFOig6kOo/bAOZ3iiTXIQlJGaQMmM=
 github.com/gorilla/websocket v1.5.3 h1:saDtZ6Pbx/0u+bgYQ3q96pZgCzfhKXGPqt7kZ72aNNg=
@@ -15,7 +15,6 @@ golang.org/x/net v0.59.0 h1:5zfYln+w5XCxwrnMMJPufRgNoXEaGxl0wo5GqPXyues=
 golang.org/x/net v0.59.0/go.mod h1:2DA/G1UfVbCpQPeWTmMPGY7Cs2PkBkwu743bVX5PIVg=
 golang.org/x/sync v0.23.0 h1:KameEIfc1IkluZyXWLn39Wd4tURc6GbCiISGiZm2bQk=
 golang.org/x/sync v0.23.0/go.mod h1:sUUOizhqBxiL6pEWpqNLUiaJn1ShEbZ6BBqskPbjZm0=
-gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405 h1:yhCVgyC4o1eVCa2tZl7eS0r+SDo693bJlVdllGtEeKM=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c h1:Hei/4ADfdWqJk1ZMxUNpqntNwaWcugrBjAiHlqqRiVk=
 gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c/go.mod h1:JHkPIbrfpd72SG/EVd6muEfDQjcINNoR0C8j2r3qZ4Q=
