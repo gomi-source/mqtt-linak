@@ -2,8 +2,8 @@ github.com/eclipse/paho.mqtt.golang v1.5.1 h1:/VSOv3oDLlpqR2Epjn1Q7b2bSTplJIeV2I
 github.com/eclipse/paho.mqtt.golang v1.5.1/go.mod h1:1/yJCneuyOoCOzKSsOTUc0AJfpsItBGWvYpBLimhArU=
 github.com/gomi-source/corebluetooth-go v0.2.1 h1:NF2XhmFRMBDDRE11LLfJt88smN/IdTR14Mi0+P0jn48=
 github.com/gomi-source/corebluetooth-go v0.2.1/go.mod h1:dbmKln+AzmZ8n80qXn9MbeyfXS0kzdmzyGx2AqrsVYg=
-github.com/gomi-source/linak-dpg v0.2.0 h1:tuC7rXQVVJgxKe1d+Ksv2rlnXX+z6ngZt6r6W0TwSFI=
-github.com/gomi-source/linak-dpg v0.2.0/go.mod h1:rjlN/uxY+wXckYjFOig6kOo/bAOZ3iiTXIQlJGaQMmM=
+github.com/gomi-source/linak-dpg v0.3.0 h1:AjC8kOe/V0+APw/GiIUZAMI1ZULb7pk4iodA0Sg++Ws=
+github.com/gomi-source/linak-dpg v0.3.0/go.mod h1:9vLKgLpgQsX5CKOyrfDcBEm4RZ9hKO6QUhDCX0c1+JQ=
 github.com/gorilla/websocket v1.5.3 h1:saDtZ6Pbx/0u+bgYQ3q96pZgCzfhKXGPqt7kZ72aNNg=
 github.com/gorilla/websocket v1.5.3/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
 github.com/kr/pretty v0.2.1 h1:Fmg33tUaq4/8ym9TJN1x7sLJnHVwhP33CNkpYV/7rwI=

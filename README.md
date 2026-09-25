@@ -217,6 +217,69 @@ level=DEBUG msg="gatt write" desk=anders characteristic=99FA0031 bytes="B6 1C" w
 level=DEBUG msg="gatt notification" desk=anders characteristic=99FA0021 bytes="9A 1B 00 00"
 ```
 
+## Pairing, and the Connection Request dialog
+
+Shortly after the bridge connects to a desk this Mac has not paired with,
+macOS shows a **Connection Request from: DESK …** dialog. It is pairing,
+and **the desk will not move without it**: click *Connect*.
+
+Unpaired, everything short of a move works — settings are read,
+ownership is taken, wake-ups go out — and a move command is accepted
+over MQTT and then does nothing. The desk drops heights sent over an
+unpaired link without a word, because the characteristic they go to has
+no reply to carry a refusal in. So the log shows nothing wrong either.
+
+| | *Connect* | *Cancel* (or "ignore this device") | Left unanswered |
+|---|---|---|---|
+| Moves | work | **silently do nothing** | **silently do nothing** |
+| Reads, ownership | work | work | work, after one failed attempt — see below |
+| Dialog | never again | again on every connect | again on every connect |
+| After the bridge stops | desk is released | desk is released | desk is released |
+
+An unanswered dialog withdraws itself after a while, but it outlasts the
+bridge's request timeout, so a request caught behind it fails first —
+usually the wake-up sent on connect:
+
+```
+wake_up err="could not get control characteristic: context deadline exceeded"
+```
+
+The reconnect after it succeeds — but unpaired, so moves still do
+nothing.
+
+**A desk connected to another Mac looks available and is not.** It keeps
+advertising, so it shows up in `-scan` and in any BLE browser, but every
+connect times out:
+
+```
+connect: corebluetoothd: rpc error 2: timeout: connect timed out
+```
+
+Pairing does not cause this. A paired desk shows as *disconnected* in
+System Settings once the bridge stops, and a desk has been paired with
+two Macs at once, moving for whichever was connected. What blocks the
+second Mac is a live connection on the first — which need not be the
+bridge: once, a Mac kept the desks connected after its bridge was
+stopped, and kept reconnecting them, which it never had before. The cause
+was not established. On that Mac, check for anything still running
+(`pgrep -fl 'corebluetoothd|mqtt-linak'`, and a launchd job with
+`KeepAlive` that restarts the bridge as soon as it is stopped); failing
+that, forget the desk there (System Settings → Bluetooth → ⓘ → Forget
+This Device) or turn its Bluetooth off, and the desk is released at
+once. Forgetting the desk on the Mac that *cannot* connect, or restarting
+`bluetoothd` there, does not help.
+
+The two connection problems are told apart by where they fail: a desk
+held by another Mac never connects (`connect timed out`), while a dialog
+waiting on *this* Mac lets the connect through and fails afterwards
+(`context deadline exceeded` on a characteristic).
+
+Once, subscribing to the height stream failed with `CBATTErrorDomain
+Code=15 "Encryption is insufficient."` while another app on the same Mac
+was connected to the desk. It has not recurred. It may be the same
+requirement for an encrypted link, surfacing on a characteristic that can
+answer.
+
 ## How the connection is kept up
 
 Each desk gets a goroutine running scan → connect → serve → back off →
@@ -322,6 +385,9 @@ a move has finished.
 - **Everything that writes needs the owner bit** on the controller, which
   the bridge sets on each connect (see above). If `TakeOwnership` keeps
   failing, moves will be accepted over MQTT and then silently do nothing.
+- **Moves also need the desk paired with this Mac.** Without it they
+  silently do nothing too, while everything else works — see *Pairing*
+  above.
 
 ## Development
 
