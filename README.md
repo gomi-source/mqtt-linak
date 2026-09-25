@@ -274,6 +274,15 @@ held by another Mac never connects (`connect timed out`), while a dialog
 waiting on *this* Mac lets the connect through and fails afterwards
 (`context deadline exceeded` on a characteristic).
 
+**Disconnect loops after re-pairing.** After the desks were forgotten on
+this Mac and paired again through the dialog, both went into a loop of
+disconnecting and reconnecting. Putting each desk into pairing mode from
+its panel ended it, while the loop was still running — without
+forgetting the desk again or restarting the bridge. Why is not
+established; the likeliest reading is that the desk still held the old
+pairing's keys. So after forgetting a desk and pairing it again, pair it
+from the desk's side too.
+
 Once, subscribing to the height stream failed with `CBATTErrorDomain
 Code=15 "Encryption is insufficient."` while another app on the same Mac
 was connected to the desk. It has not recurred. It may be the same
