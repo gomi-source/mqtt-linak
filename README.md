@@ -217,6 +217,39 @@ level=DEBUG msg="gatt write" desk=anders characteristic=99FA0031 bytes="B6 1C" w
 level=DEBUG msg="gatt notification" desk=anders characteristic=99FA0021 bytes="9A 1B 00 00"
 ```
 
+## Starting at login
+
+`make install-agent` builds `bin/`, installs a LaunchAgent that runs the
+bridge from there, and starts it. It starts again at every login and is
+restarted if it crashes.
+
+```sh
+make install-agent                        # uses ./config.yaml
+make install-agent CONFIG=~/mqtt-linak.yaml AGENT_LOG_LEVEL=debug
+make agent-status                         # loaded? running? last exit code, end of the log
+make agent-log                            # follow ~/Library/Logs/mqtt-linak.log
+make restart-agent                        # rebuild and restart after a change
+make uninstall-agent                      # stop it and remove it
+```
+
+The plist is written to `~/Library/LaunchAgents/se.gomi.mqtt-linak.plist`
+from `launchd/mqtt-linak.plist.in`; `AGENT_LABEL` and `AGENT_LOG` change
+its name and log file. Running `install-agent` again replaces it.
+
+- **An agent, not a daemon.** Bluetooth permission is granted per user,
+  and the pairing dialog needs someone logged in, so the bridge runs in
+  your login session. A Mac that should run it unattended needs
+  automatic login.
+- **Stop it with `make uninstall-agent`** (or `launchctl bootout`), not by
+  killing the process. The agent restarts the bridge only when it fails —
+  it exits 0 on SIGTERM, and a clean exit is left alone — but killing it
+  leaves the job loaded, and anything that restarts it will hold the
+  desks again. See *A desk connected to another Mac* below.
+- **The first start is a new Bluetooth client** as far as macOS is
+  concerned: check System Settings → Privacy & Security → Bluetooth if it
+  finds nothing, and answer the Connection Request for any desk not yet
+  paired with this Mac.
+
 ## Pairing, and the Connection Request dialog
 
 Shortly after the bridge connects to a desk this Mac has not paired with,
