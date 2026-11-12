@@ -101,6 +101,7 @@ type deskManager struct {
 	onlineAt      time.Time
 	lastHeld      time.Duration
 	lastActivity  time.Time
+	lastMoveAt    time.Time // when the last move command went to the desk
 	consecFailure int
 }
 
@@ -441,7 +442,14 @@ func (m *deskManager) onControlError(frame []byte) {
 		m.log.Info("desk error cleared")
 		return
 	}
-	args := []any{"frame", hexFrame(frame), "moving", m.desk.Moving()}
+	// How long since the last move command, rather than whether a move is
+	// running: Move watches the same frames and ends a move on one, so by
+	// the time this runs it has usually finished, and asking would report
+	// a frame that arrived mid-move as arriving at rest.
+	args := []any{"frame", hexFrame(frame)}
+	if since, ok := m.sinceMove(); ok {
+		args = append(args, "since_move", since.Round(time.Millisecond))
+	}
 	if code, ok := controlerror.Code(frame); ok {
 		args = append(args, "code", fmt.Sprintf("0x%02X", code), "meaning", controlerror.Describe(code))
 	}
@@ -471,6 +479,17 @@ func (m *deskManager) markActivity() {
 	m.stateMu.Lock()
 	m.lastActivity = time.Now()
 	m.stateMu.Unlock()
+}
+
+// sinceMove reports how long ago the last move command went to the desk,
+// if one has.
+func (m *deskManager) sinceMove() (time.Duration, bool) {
+	m.stateMu.Lock()
+	defer m.stateMu.Unlock()
+	if m.lastMoveAt.IsZero() {
+		return 0, false
+	}
+	return time.Since(m.lastMoveAt), true
 }
 
 func (m *deskManager) idleFor() time.Duration {
@@ -613,6 +632,9 @@ func (m *deskManager) apply(ctx context.Context, cmd command) {
 	switch cmd.kind {
 	case commandKindHeight:
 		m.log.Info("moving desk", "target_tenths_mm", cmd.value)
+		m.stateMu.Lock()
+		m.lastMoveAt = time.Now()
+		m.stateMu.Unlock()
 		_ = m.command("move", func() error { return m.desk.Move(cmd.value) },
 			"target_tenths_mm", cmd.value)
 
