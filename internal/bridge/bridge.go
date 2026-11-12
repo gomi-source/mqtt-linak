@@ -13,6 +13,7 @@ package bridge
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -409,16 +410,39 @@ func newLineWriter(log *slog.Logger, source string) io.Writer {
 	pr, pw := io.Pipe()
 	lw := &lineWriter{log: log, source: source, w: pw}
 	go func() {
-		sc := bufio.NewScanner(pr)
-		sc.Buffer(make([]byte, 0, 64*1024), 1024*1024)
-		for sc.Scan() {
-			line := strings.TrimSpace(sc.Text())
-			if line != "" {
-				log.Debug(line, "source", source)
+		// The pipe is unbuffered, so this goroutine must never stop
+		// reading: if it did, the next write would block forever, and
+		// with it whatever copies the helper's stderr - in the end the
+		// helper itself, stuck writing a log line. A Scanner stops for
+		// good on its first error, so an over-long line starts a fresh
+		// one (the rest of that line arrives as its own entry), and any
+		// other error falls back to discarding the stream.
+		for {
+			sc := bufio.NewScanner(pr)
+			sc.Buffer(make([]byte, 0, 64*1024), maxHelperLine)
+			for sc.Scan() {
+				line := strings.TrimSpace(sc.Text())
+				if line != "" {
+					log.Debug(line, "source", source)
+				}
 			}
+			err := sc.Err()
+			if err == nil {
+				return // the writer was closed
+			}
+			if errors.Is(err, bufio.ErrTooLong) {
+				log.Warn("helper wrote a line too long to log; it is split", "source", source, "limit_bytes", maxHelperLine)
+				continue
+			}
+			log.Warn("stopped logging helper output", "source", source, "err", err)
+			_, _ = io.Copy(io.Discard, pr)
+			return
 		}
 	}()
 	return lw
 }
+
+// maxHelperLine is the longest helper stderr line logged in one piece.
+const maxHelperLine = 1024 * 1024
 
 func (w *lineWriter) Write(p []byte) (int, error) { return w.w.Write(p) }

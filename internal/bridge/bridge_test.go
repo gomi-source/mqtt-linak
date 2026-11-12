@@ -1,6 +1,9 @@
 package bridge
 
 import (
+	"context"
+	"io"
+	"log/slog"
 	"strings"
 	"sync"
 	"testing"
@@ -320,3 +323,49 @@ func TestErrorPayload(t *testing.T) {
 		}
 	}
 }
+
+// A helper stderr line longer than the scanner allows must not stop the
+// reading: the pipe is unbuffered, so a reader that gave up would leave
+// the next write - and the helper behind it - blocked for good.
+func TestLineWriterSurvivesAnOverlongLine(t *testing.T) {
+	logged := make(chan string, 16)
+	log := slog.New(recordHandler{logged})
+	w := newLineWriter(log, "helper")
+
+	done := make(chan error, 1)
+	go func() {
+		_, err := io.WriteString(w, strings.Repeat("x", maxHelperLine+10)+"\nafter\n")
+		done <- err
+	}()
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("write failed: %v", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("write blocked: nothing is reading the helper's stderr any more")
+	}
+
+	deadline := time.After(5 * time.Second)
+	for {
+		select {
+		case msg := <-logged:
+			if msg == "after" {
+				return
+			}
+		case <-deadline:
+			t.Fatal("the line after the over-long one was never logged")
+		}
+	}
+}
+
+// recordHandler hands each log message to a channel.
+type recordHandler struct{ out chan<- string }
+
+func (h recordHandler) Enabled(context.Context, slog.Level) bool { return true }
+func (h recordHandler) Handle(_ context.Context, r slog.Record) error {
+	h.out <- r.Message
+	return nil
+}
+func (h recordHandler) WithAttrs([]slog.Attr) slog.Handler { return h }
+func (h recordHandler) WithGroup(string) slog.Handler      { return h }
