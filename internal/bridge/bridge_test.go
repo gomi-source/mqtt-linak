@@ -301,3 +301,22 @@ func TestThrottleFlushWithNothingPending(t *testing.T) {
 		t.Fatalf("got %v, want nothing published", got)
 	}
 }
+
+// The frames are the ones a DPG1M has sent: a collision, and a height
+// reaching it mid-move. A frame of any other shape still carries its bytes.
+func TestErrorPayload(t *testing.T) {
+	at := time.Date(2026, 11, 12, 10, 53, 5, 0, time.FixedZone("CET", 3600))
+	for _, tc := range []struct {
+		frame []byte
+		want  string
+	}{
+		{[]byte{0x01, 0x00, 0x3B}, `{"time":"2026-11-12T10:53:05+01:00","frame":"01 00 3B","code":59,"meaning":"collision: the desk ran into something"}`},
+		{[]byte{0x01, 0x00, 0x10}, `{"time":"2026-11-12T10:53:05+01:00","frame":"01 00 10","code":16,"meaning":"interrupted: a new height reached the desk while it was moving"}`},
+		{[]byte{0x01, 0x00, 0x77}, `{"time":"2026-11-12T10:53:05+01:00","frame":"01 00 77","code":119,"meaning":"code 0x77, not seen before"}`},
+		{[]byte{0x05}, `{"time":"2026-11-12T10:53:05+01:00","frame":"05"}`},
+	} {
+		if got := errorPayload(tc.frame, at); got != tc.want {
+			t.Errorf("errorPayload(% X)\n got %s\nwant %s", tc.frame, got, tc.want)
+		}
+	}
+}

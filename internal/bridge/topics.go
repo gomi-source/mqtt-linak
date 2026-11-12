@@ -6,6 +6,9 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"time"
+
+	"github.com/gomi-source/linak-dpg/subscription/controlerror"
 )
 
 // Topic leaves. Commands and metrics deliberately use the same leaf names
@@ -14,6 +17,7 @@ const (
 	leafHeight       = "height"
 	leafBaseHeight   = "base_height"
 	leafAvailability = "availability"
+	leafError        = "error"
 )
 
 // commandTopic builds {base}/{deskID}/{leaf}.
@@ -96,3 +100,38 @@ func checkRange(v float64) (int, error) {
 // formatTenthsMM renders a metric payload. Plain integers keep the topics
 // usable from a shell with mosquitto_sub.
 func formatTenthsMM(v int) string { return strconv.Itoa(v) }
+
+// errorPayload renders a frame from the desk's Control error
+// characteristic for the error topic. Unlike the height metrics it is
+// JSON, because a frame is more than a number: when it came, the bytes
+// as they arrived, and - for the 01 00 <code> shape every frame so far
+// has had - the code and what it is known to mean. The bytes are always
+// there, so a frame of a shape nobody has seen yet still arrives whole.
+func errorPayload(frame []byte, at time.Time) string {
+	p := struct {
+		Time    string `json:"time"`
+		Frame   string `json:"frame"`
+		Code    *int   `json:"code,omitempty"`
+		Meaning string `json:"meaning,omitempty"`
+	}{
+		Time:  at.Format(time.RFC3339),
+		Frame: hexFrame(frame),
+	}
+	if code, ok := controlerror.Code(frame); ok {
+		c := int(code)
+		p.Code = &c
+		p.Meaning = controlerror.Describe(code)
+	}
+	b, _ := json.Marshal(p)
+	return string(b)
+}
+
+// hexFrame spells a frame out as space-separated hex bytes, the way the
+// desk package logs them.
+func hexFrame(b []byte) string {
+	parts := make([]string, len(b))
+	for i, v := range b {
+		parts[i] = fmt.Sprintf("%02X", v)
+	}
+	return strings.Join(parts, " ")
+}

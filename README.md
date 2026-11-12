@@ -48,6 +48,7 @@ itself uses, sent and received as a plain decimal string (`7350`).
 | `{metric_topic_base}/{deskId}/height` | Current height above the base, as the desk reports it. |
 | `{metric_topic_base}/{deskId}/base_height` | The controller's stored base height, read on every connect. |
 | `{metric_topic_base}/{deskId}/availability` | `online` / `offline` for that desk's BLE connection. |
+| `{metric_topic_base}/{deskId}/error` | The last error the desk's controller reported, as JSON — see below. |
 | `{metric_topic_base}/bridge/availability` | `online` / `offline` for the bridge itself (also the MQTT last will). |
 
 `bridge` is therefore a reserved desk id, and the config file rejects it.
@@ -78,9 +79,24 @@ is also accepted, so a home-automation system that can only emit JSON
 templates needs no extra templating. Fractional values are rounded;
 anything outside `0..65535` is rejected and logged.
 
-Metrics are always a plain decimal string, and retained by default so a
+Metrics are a plain decimal string, and retained by default so a
 subscriber that connects later immediately sees each desk's last known
 position.
+
+The exception is `error`, which is JSON because a frame from the desk's
+Control error characteristic is more than a number:
+
+```json
+{"time":"2026-11-12T10:53:05+01:00","frame":"01 00 3B","code":59,"meaning":"collision: the desk ran into something"}
+```
+
+`frame` is the bytes as they arrived. `code` and `meaning` are there for
+the `01 00 <code>` shape every frame so far has had; codes seen are 0x3B
+(collision) and 0x10 (a new height reached the desk mid-move), and any
+other is published with `"code 0x.., not seen before"`. The empty frame that has followed
+each error by about 0.8 s, read as the error clearing, is logged at INFO
+and not published, so the retained message keeps the last code rather
+than being overwritten a second later.
 
 ## Configuration
 

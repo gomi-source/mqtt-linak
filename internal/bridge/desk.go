@@ -13,6 +13,7 @@ import (
 
 	"github.com/gomi-source/linak-dpg"
 	deskpkg "github.com/gomi-source/linak-dpg/desk"
+	"github.com/gomi-source/linak-dpg/subscription/controlerror"
 	"github.com/gomi-source/linak-dpg/subscription/referenceoutput"
 
 	"github.com/gomi-source/mqtt-linak/internal/config"
@@ -78,6 +79,12 @@ type deskManager struct {
 	desk    *deskpkg.Desk
 	roSub   referenceoutput.Subscribable
 	subsSet bool
+
+	// watchingErrors is set once the Control error characteristic is
+	// subscribed, so that later connects re-arm its notifications too. A
+	// desk or helper without the characteristic leaves it unset, and the
+	// bridge carries on without it.
+	watchingErrors bool
 
 	gatt *dpg.GATT
 
@@ -338,6 +345,16 @@ func (m *deskManager) discover(device dpg.Device) error {
 		{"reference input", dpg.ServiceUUIDReferenceInput, dpg.CharacteristicUUIDReferenceInput},
 		{"desk panel", dpg.ServiceUUIDDeskPanel, dpg.CharacteristicUUIDDeskPanel},
 	}
+	// The error characteristic is optional, so it is only wanted here
+	// once a first connect has found it - and then it has to be
+	// rediscovered like the rest before its notifications are re-armed.
+	if m.watchingErrors {
+		wanted = append(wanted, struct {
+			name    string
+			service string
+			char    string
+		}{"control error", dpg.ServiceUUIDControl, dpg.CharacteristicUUIDControlError})
+	}
 	for _, w := range wanted {
 		if _, err := m.gatt.GetCharacteristic(device, w.service, w.char); err != nil {
 			return fmt.Errorf("%s characteristic: %w", w.name, err)
@@ -356,10 +373,14 @@ func (m *deskManager) discover(device dpg.Device) error {
 // leaving the single registered callback in place.
 func (m *deskManager) ensureSubscriptions(ctx context.Context, device dpg.Device) error {
 	if m.subsSet {
-		for _, c := range []struct{ service, char string }{
+		rearm := []struct{ service, char string }{
 			{dpg.ServiceUUIDReferenceOutput, dpg.CharacteristicUUIDReferenceOutput},
 			{dpg.ServiceUUIDDeskPanel, dpg.CharacteristicUUIDDeskPanel},
-		} {
+		}
+		if m.watchingErrors {
+			rearm = append(rearm, struct{ service, char string }{dpg.ServiceUUIDControl, dpg.CharacteristicUUIDControlError})
+		}
+		for _, c := range rearm {
 			nctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 			err := m.b.bleClient.SetNotify(nctx, m.peripheralID, c.service, c.char, true)
 			cancel()
@@ -382,6 +403,16 @@ func (m *deskManager) ensureSubscriptions(ctx context.Context, device dpg.Device
 	m.roSub = m.desk.Positions()
 	m.roSub.AddReferenceOutputCallback(m.onReferenceOutput)
 
+	// The Control error characteristic is watched for the whole
+	// connection. This is the Desk's own subscription, the one
+	// Move also uses, so every frame is delivered once to each.
+	if ce, err := m.desk.ControlErrors(); err != nil {
+		m.log.Warn("not watching the desk's error characteristic; faults it reports will not be logged", "err", err)
+	} else {
+		ce.AddControlErrorCallback(m.onControlError)
+		m.watchingErrors = true
+	}
+
 	m.subsSet = true
 	return nil
 }
@@ -397,6 +428,25 @@ func (m *deskManager) ensureSubscriptions(ctx context.Context, device dpg.Device
 // reading means it has settled, which is always worth publishing at once.
 func (m *deskManager) onReferenceOutput(extension, speed int) {
 	m.height.Set(extension, speed == 0)
+}
+
+// onControlError receives every frame from the desk's Control error
+// characteristic. An error is logged as a warning and published to the
+// error topic; the empty frame that has followed each error by about
+// 0.8s reads as it clearing, and is logged only. It is not published:
+// it would overwrite the retained error it clears within a second, and
+// the code is the part worth keeping.
+func (m *deskManager) onControlError(frame []byte) {
+	if controlerror.Cleared(frame) {
+		m.log.Info("desk error cleared")
+		return
+	}
+	args := []any{"frame", hexFrame(frame), "moving", m.desk.Moving()}
+	if code, ok := controlerror.Code(frame); ok {
+		args = append(args, "code", fmt.Sprintf("0x%02X", code), "meaning", controlerror.Describe(code))
+	}
+	m.log.Warn("desk reported an error", args...)
+	m.b.publish(m.topic(leafError), errorPayload(frame, time.Now()))
 }
 
 func (m *deskManager) publishHeight(v int) {
